@@ -320,6 +320,29 @@ pub(crate) fn bpf_map_get_next_key<K: Pod>(
     }
 }
 
+// Not currently used
+#[allow(dead_code)]
+pub(crate) fn bpf_prog_get_next_id(
+    start_id: Option<u32>,
+) -> Result<Option<u32>, (c_long, io::Error)> {
+    let mut attr = unsafe { mem::zeroed::<bpf_attr>() };
+
+    {
+        let u = unsafe { &mut attr.__bindgen_anon_6 };
+        let id = &mut u.__bindgen_anon_1;
+
+        if let Some(start_id) = start_id {
+            id.start_id = start_id;
+        }
+    }
+
+    match sys_bpf(bpf_cmd::BPF_PROG_GET_NEXT_ID, &attr) {
+        Ok(_) => Ok(Some(unsafe { attr.__bindgen_anon_6.next_id })),
+        Err((_, io_error)) if io_error.raw_os_error() == Some(ENOENT) => Ok(None),
+        Err(e) => Err(e),
+    }
+}
+
 // since kernel 5.2
 pub(crate) fn bpf_map_freeze(fd: RawFd) -> SysResult {
     let mut attr = unsafe { mem::zeroed::<bpf_attr>() };
